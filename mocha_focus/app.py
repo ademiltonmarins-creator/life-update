@@ -55,33 +55,6 @@ def aplicar_fundo():
         }}
         </style>
         """, unsafe_allow_html=True)
-st.markdown("""
-<style>
-
-/* Limita largura para mobile */
-.block-container {
-    max-width: 100% !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
-}
-
-/* Ajuste de botões */
-.stButton > button {
-    width: 100%;
-}
-
-/* Inputs ocupando largura total */
-div[data-baseweb="input"] {
-    width: 100% !important;
-}
-
-/* Sidebar melhor no mobile */
-section[data-testid="stSidebar"] {
-    width: 80% !important;
-}
-
-</style>
-""", unsafe_allow_html=True)
 
     
     except FileNotFoundError:
@@ -140,4 +113,5 @@ if st.session_state.user_id:
 else:
 
     login()
+
 
