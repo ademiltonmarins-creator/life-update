@@ -55,7 +55,7 @@ def aplicar_fundo():
         }}
         </style>
         """, unsafe_allow_html=True)
-)
+
     except FileNotFoundError:
         st.warning("Imagem de fundo não encontrada em assets/background.png")
 
@@ -112,6 +112,7 @@ if st.session_state.user_id:
 else:
 
     login()
+
 
 
 
