@@ -15,7 +15,7 @@ from config import APP_TITLE
 st.set_page_config(
     page_title=APP_TITLE,
     layout="centered",  # melhor para smartphone
-    initial_sidebar_state="expanded"
+   initial_sidebar_state="collapsed"
 )
 
 # ================= FUNDO PERSONALIZADO =================
@@ -110,4 +110,5 @@ if st.session_state.user_id:
         st.rerun()
 
 else:
+
     login()
