@@ -12,7 +12,7 @@ def tarefas():
         (st.session_state.user_id,)
     ).fetchone()[0]
 
-    # ===== Apenas admin pode criar tarefas =====
+    # ================= CRIAR TAREFA (ADMIN) =================
     if username == MASTER_USER:
         st.subheader("Criar Nova Tarefa")
 
@@ -27,8 +27,8 @@ def tarefas():
             else:
                 c.execute("""
                     INSERT INTO tarefas
-                    (user_id, titulo, tipo, xp, core, data_criacao)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    (user_id, titulo, tipo, xp, core, data_criacao, status)
+                    VALUES (?, ?, ?, ?, ?, ?, 'pendente')
                 """, (
                     st.session_state.user_id,
                     titulo,
@@ -43,7 +43,7 @@ def tarefas():
 
     st.divider()
 
-    # ===== Usuários concluem tarefas =====
+    # ================= LISTAR TAREFAS =================
     tarefas_pendentes = c.execute("""
         SELECT id, user_id, titulo, tipo, xp, core
         FROM tarefas
@@ -56,24 +56,73 @@ def tarefas():
         return
 
     for t in tarefas_pendentes:
-        st.write(f"📌 {t[2]} ({t[3]}) — XP:{t[4]} | Core:{t[5]}")
+        st.markdown(f"### 📌 {t[2]}")
+        st.write(f"Tipo: {t[3]} | XP: {t[4]} | Core: {t[5]}")
 
-        # Só o usuário dono pode concluir
-        if username != MASTER_USER and st.button("Concluir", key=t[0]):
-            c.execute("""
-                UPDATE tarefas
-                SET status='concluida', data_conclusao=?
-                WHERE id=?
-            """, (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), t[0]))
+        col1, col2, col3 = st.columns(3)
 
-            c.execute("""
-                UPDATE users
-                SET xp = xp + ?, core = core + ?
-                WHERE id = ?
-            """, (t[4], t[5], st.session_state.user_id))
+        # ===== CONCLUIR (usuário comum) =====
+        if username != MASTER_USER:
+            if col1.button("Concluir", key=f"concluir_{t[0]}"):
+                c.execute("""
+                    UPDATE tarefas
+                    SET status='concluida', data_conclusao=?
+                    WHERE id=?
+                """, (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), t[0]))
 
-            conn.commit()
-            atualizar_nivel(st.session_state.user_id)
-            registrar(st.session_state.user_id, "tarefa", f"Concluiu {t[2]}")
-            st.success("Tarefa concluída!")
-            st.rerun()
+                c.execute("""
+                    UPDATE users
+                    SET xp = xp + ?, core = core + ?
+                    WHERE id = ?
+                """, (t[4], t[5], st.session_state.user_id))
+
+                conn.commit()
+                atualizar_nivel(st.session_state.user_id)
+                registrar(st.session_state.user_id, "tarefa", f"Concluiu {t[2]}")
+                st.success("Tarefa concluída!")
+                st.rerun()
+
+        # ===== EDITAR / EXCLUIR (ADMIN) =====
+        if username == MASTER_USER:
+
+            if col2.button("Editar", key=f"editar_{t[0]}"):
+                st.session_state["editar_tarefa"] = t[0]
+
+            if col3.button("Excluir", key=f"excluir_{t[0]}"):
+                c.execute("DELETE FROM tarefas WHERE id=?", (t[0],))
+                conn.commit()
+                st.success("Tarefa excluída!")
+                st.rerun()
+
+        st.divider()
+
+    # ================= ÁREA DE EDIÇÃO =================
+    if "editar_tarefa" in st.session_state:
+        tarefa_id = st.session_state["editar_tarefa"]
+
+        tarefa = c.execute("""
+            SELECT titulo, tipo, xp, core
+            FROM tarefas
+            WHERE id=?
+        """, (tarefa_id,)).fetchone()
+
+        if tarefa:
+            st.subheader("Editar Tarefa")
+
+            novo_titulo = st.text_input("Título", tarefa[0])
+            tipos = ["geral", "estudo", "treino", "rotina"]
+            novo_tipo = st.selectbox("Tipo", tipos, index=tipos.index(tarefa[1]))
+            novo_xp = st.number_input("XP", 1, 100, tarefa[2])
+            novo_core = st.number_input("Core", 1, 50, tarefa[3])
+
+            if st.button("Salvar Alterações"):
+                c.execute("""
+                    UPDATE tarefas
+                    SET titulo=?, tipo=?, xp=?, core=?
+                    WHERE id=?
+                """, (novo_titulo, novo_tipo, novo_xp, novo_core, tarefa_id))
+
+                conn.commit()
+                del st.session_state["editar_tarefa"]
+                st.success("Tarefa atualizada!")
+                st.rerun()
